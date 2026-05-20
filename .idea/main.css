@@ -1,0 +1,283 @@
+﻿@import url("https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&display=swap");
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #313131;
+    font-family: 'Comfortaa', sans-serif;
+    color: #000000;
+    padding: 2rem 1.5rem;
+}
+
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.tabs {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 2px solid #ffffff;
+    margin-bottom: 2rem;
+}
+
+.tab-btn {
+    font-family: 'Comfortaa', cursive, sans-serif;
+    background: transparent;
+    border: none;
+    font-size: 1.8rem;
+    width: 700px;
+    font-weight: 600;
+    padding: 0.5rem 0 0.8rem 0;
+    cursor: pointer;
+    color: white;
+    letter-spacing: -0.3px;
+    border-bottom: 3px solid transparent;
+    text-align: center;
+    transition: 0.5s;
+    background-size: 200% auto;
+}
+
+.tab-btn.active {
+    color: #ffc700;
+}
+
+.tab-btn:hover:not(.active) {
+    color: #ffc700;
+}
+
+.tab-pane {
+    display: none;
+    animation: fade 0.5s ease;
+}
+
+.tab-pane.active-pane {
+    display: block;
+}
+
+@keyframes fade {
+    from { opacity: 0; transform: translateY(6px);}
+    to { opacity: 1; transform: translateY(0);}
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 1.8rem;
+    gap: 1rem;
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.create-btn {
+    background: #dfad00;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    shape-rendering: crispEdges;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.5s;
+    font-family: 'Comfortaa', cursive, sans-serif
+}
+
+.create-btn:hover {
+    background: #ffc700;
+}
+
+.notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.note-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 1.2rem 1.2rem 1rem 1.2rem;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.note-card:hover {
+    transform: translateY(-2px);
+    border-color: #e2e8f0;
+}
+
+.note-color-tag {
+    width: 32px;
+    height: 8px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    background: #e2e8f0;
+}
+
+.note-title {
+    font-weight: 650;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.pin-icon {
+    font-size: 1.1rem;
+    color: #f59e0b;
+    cursor: pointer;
+}
+
+.note-preview {
+    font-size: 0.85rem;
+    color: white;
+    line-height: 1.4;
+    margin: 8px 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 6px;
+}
+
+.tag {
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 40px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.note-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.task-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    color: #1e293b;
+}
+
+.task-item input {
+    width: 16px;
+    height: 16px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+.completed-task {
+    text-decoration: line-through;
+    color: #94a3b8;
+}
+
+hr {
+    margin: 12px 0 6px;
+    border: none;
+    border-top: 1px solid #ecfdf5;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; 
+    left: 200px;
+    width: 1000px; 
+    height:auto;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-card {
+    background: white;
+    width: 90%;
+    max-width: 550px;
+    border-radius: 10px;
+    padding: 1.8rem;
+}
+
+.modal-card input, .modal-card textarea, .modal-card select {
+    width: 100%;
+    margin: 8px 0 16px;
+    padding: 12px;
+    border-radius: 18px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: none;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+button {
+    font-family: 'Comfortaa', cursive, sans-serif;
+    background: #e3e3e3;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+button.primary {
+    background: #dfad00;
+    color: white;
+}
+
+button.primary:hover {
+    background: #ffc700;
+    color: white;
+}
+
+button.secondary {
+    background: #e3e3e3;
+    color: black;
+}
+
+button.secondary:hover {
+    background: #a8a8a8
+}
+
+@media (max-width: 640px) {
+    body { padding: 1.2rem; }
+    .tab-btn { font-size: 1.4rem; }
+    .notes-grid { gap: 1rem; }
+}
