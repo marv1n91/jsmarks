@@ -111,6 +111,8 @@ body {
     display: flex;
     flex-direction: column;
     cursor: pointer;
+    position: relative;
+    min-height: 220px;
 }
 
 .note-card:hover {
@@ -131,15 +133,47 @@ body {
     font-size: 1.2rem;
     margin-bottom: 8px;
     color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    padding-right: 2rem;
 }
 
-.pin-icon {
-    font-size: 1.1rem;
-    color: #f59e0b;
+/* Кнопка закрепа живёт поверх карточки, чтобы не двигать текст заголовка */
+.pin-note {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    color: #d6d6d6;
+    font-size: 1.05rem;
+    line-height: 1;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+/* значок делаем через CSS, в HTML остаётся пустая кнопка для клика */
+.pin-note::before {
+    content: "📌";
+    display: block;
+    filter: grayscale(1);
+    opacity: 0.62;
+    transform: rotate(-20deg);
+    transition: 0.2s;
+}
+
+/* Активное и hover состояние одинаковые: пользователь сразу видит, что закреп включён */
+.pin-note:hover,
+.pin-note.pinned {
+    background: #ffc700;
+    color: #1a1a1a;
+}
+
+.pin-note:hover::before,
+.pin-note.pinned::before {
+    filter: none;
+    opacity: 1;
 }
 
 .note-preview {
@@ -161,12 +195,21 @@ body {
 }
 
 .tag {
-    background: #f1f5f9;
+    background: rgba(255, 255, 255, 0.14);
     padding: 4px 10px;
     border-radius: 40px;
     font-size: 0.7rem;
     font-weight: 500;
-    color: #1e293b;
+    color: #ffffff;
+}
+
+.note-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    font-size: 0.68rem;
+    color: #b9b9b9;
 }
 
 .note-footer {
@@ -176,6 +219,53 @@ body {
     margin-top: 12px;
     font-size: 0.7rem;
     color: #94a3b8;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.card-actions button {
+    padding: 0;
+    background: transparent;
+    color: #d6d6d6;
+    font-size: 0.7rem;
+    transition: 0.2s;
+}
+
+/* Действия подсвечиваются только при наведении, чтобы карточка не выглядела шумной. */
+.edit-note:hover {
+    color: #ffc700;
+}
+
+.delete-note:hover {
+    color: #ff4d4d;
+}
+
+.light-card .note-title,
+.light-card .note-preview {
+    color: #1f1f1f;
+}
+
+.light-card .tag {
+    background: #e7e7e7;
+    color: #1f1f1f;
+}
+
+.light-card .note-dates,
+.light-card .note-footer,
+.light-card .card-actions button {
+    color: #555555;
+}
+
+.light-card .delete-note:hover {
+    color: #d50000;
+}
+
+.empty-state {
+    color: #ffffff;
+    opacity: 0.75;
 }
 
 .task-list {
@@ -214,12 +304,14 @@ hr {
 .modal {
     display: none;
     position: fixed;
-    top: 0; 
-    left: 200px;
-    width: 1000px; 
-    height:auto;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     justify-content: center;
     align-items: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10;
 }
 
 .modal-card {
@@ -238,6 +330,26 @@ hr {
     font-family: inherit;
     font-size: 0.9rem;
     resize: none;
+}
+
+.modal-label {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: #333333;
+}
+
+.pin-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+    color: #333333;
+}
+
+.pin-row input {
+    width: auto;
+    margin: 0;
 }
 
 .modal-buttons {
