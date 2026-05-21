@@ -12,14 +12,14 @@ const tagsInput = document.getElementById('noteTagsInput');
 const colorSelect = document.getElementById('noteColorInput');
 const pinnedInput = document.getElementById('notePinnedInput');
 
-// Данные держим локально: после перезагрузки страницы всё берётся из localStorage
+// берём сохранённые заметки из браузера
 function loadData() {
     const stored = localStorage.getItem('notes_app_data');
     notes = stored ? JSON.parse(stored).map(normalizeNote) : [];
     renderActiveTab();
 }
 
-// старые заметки могли быть без новых полей, поэтому добиваем значения по умолчанию
+// если в localStorage лежат старые заметки, добавляем им новые поля
 function normalizeNote(note) {
     const now = Date.now();
     return {
@@ -29,6 +29,7 @@ function normalizeNote(note) {
         type: note.type || 'note',
         color: note.color || '#242424',
         tags: Array.isArray(note.tags) ? note.tags : [],
+        items: normalizeTaskItems(note),
         pinned: Boolean(note.pinned),
         createdAt: note.createdAt || now,
         updatedAt: note.updatedAt || note.createdAt || now
@@ -47,7 +48,7 @@ function renderActiveTab() {
     }
 }
 
-// сначала показываем закреплённые, внутри групп сортируем по последнему изменению
+// закреплённые всегда наверху, остальные идут по последнему изменению
 function getSortedItems() {
     return [...notes].sort((a, b) => {
         if(Boolean(a.pinned) !== Boolean(b.pinned)) {
@@ -57,7 +58,7 @@ function getSortedItems() {
     });
 }
 
-//фильтруем обычные заметки, чтобы задачи не смешивались с ними.
+// на этой вкладке показываем только обычные заметки
 function renderNotes() {
     const container = document.getElementById('notesContainer');
     if(!container) return;
@@ -67,7 +68,7 @@ function renderNotes() {
     attachCardEvents();
 }
 
-// Задачи пока используют ту же карточку, просто лежат на своей вкладке.
+// задачи рендерим отдельно, чтобы не мешать их с заметками
 function renderTasks() {
     const container = document.getElementById('tasksContainer');
     if(!container) return;
@@ -77,10 +78,11 @@ function renderTasks() {
     attachCardEvents();
 }
 
-// Собираем HTML карточки в одном месте,так проще добавлять теги, даты и действия
+// карточку собираем тут, чтобы не дублировать разметку для заметок и задач
 function renderNoteCard(note) {
     const bgColor = note.color || '#242424';
     const isLight = bgColor === '#ffffff';
+    const bodyHtml = note.type === 'task' ? renderTaskList(note) : renderNoteText(note.content);
     const tagsHtml = note.tags.length
         ? `<div class="tags">${note.tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}</div>`
         : '';
@@ -93,7 +95,7 @@ function renderNoteCard(note) {
         <button class="pin-note ${note.pinned ? 'pinned' : ''}" data-id="${note.id}" title="Закрепить" aria-label="Закрепить"></button>
         <div class="note-color-tag" style="background: ${note.color === '#ffffff' ? '#e2e8f0' : note.color};"></div>
         <div class="note-title" lang="ru">${escapeHtml(note.title)}</div>
-        <div class="note-preview" lang="ru">${escapeHtml(note.content)}</div>
+        ${bodyHtml}
         ${tagsHtml}
         <div class="note-dates">
           <span>Созд: ${formatDate(note.createdAt)}</span>
@@ -110,6 +112,28 @@ function renderNoteCard(note) {
     `;
 }
 
+function renderNoteText(content) {
+    return `<div class="note-preview" lang="ru">${escapeHtml(content)}</div>`;
+}
+
+// рисуем пункты задачи с чекбоксами прямо внутри карточки
+function renderTaskList(note) {
+    if(!note.items.length) {
+        return '<div class="note-preview empty-task-text">Нет задач</div>';
+    }
+
+    return `
+      <ul class="task-list">
+        ${note.items.map((item, index) => `
+          <li class="task-item ${item.done ? 'completed-task' : ''}">
+            <input type="checkbox" class="task-checkbox" data-id="${note.id}" data-index="${index}" ${item.done ? 'checked' : ''}>
+            <span>${escapeHtml(item.text)}</span>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+}
+
 function formatDate(timestamp) {
     return new Date(timestamp).toLocaleDateString('ru-RU', {
         day: '2-digit',
@@ -118,7 +142,58 @@ function formatDate(timestamp) {
     });
 }
 
-// Экранируем пользовательский текст, чтобы HTML из заметки не выполнялся как код.
+// убираем пустые и повторяющиеся теги
+function normalizeTags(tagsText) {
+    const seenTags = new Set();
+
+    return tagsText
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(Boolean)
+        .filter(tag => {
+            const tagKey = tag.toLowerCase();
+            if(seenTags.has(tagKey)) return false;
+
+            seenTags.add(tagKey);
+            return true;
+        });
+}
+
+// каждая строка в задаче становится отдельным пунктом чеклиста
+function normalizeTaskItems(note) {
+    if(Array.isArray(note.items)) {
+        return note.items
+            .map(item => ({
+                text: String(item.text || '').trim(),
+                done: Boolean(item.done)
+            }))
+            .filter(item => item.text);
+    }
+
+    return String(note.content || '')
+        .split('\n')
+        .map(text => ({ text: text.trim(), done: false }))
+        .filter(item => item.text);
+}
+
+function getTaskTextForEditor(note) {
+    return note.items.map(item => item.text).join('\n');
+}
+
+// если текст пункта не поменялся, оставляем его старое состояние checked
+function mergeTaskItems(oldItems = [], newItems = []) {
+    return newItems.map((item, index) => {
+        const oldItem = oldItems[index];
+        const sameText = oldItem && oldItem.text === item.text;
+
+        return {
+            text: item.text,
+            done: sameText ? oldItem.done : false
+        };
+    });
+}
+
+// пользовательский текст выводим как текст, а не как HTML
 function escapeHtml(str) {
     if(!str) return '';
     return String(str).replace(/[&<>"]/g, function(m) {
@@ -130,7 +205,7 @@ function escapeHtml(str) {
     });
 }
 
-// После перерисовки карточек обработчики нужно повесить заново
+// карточки пересоздаются через innerHTML, поэтому события вешаем заново
 function attachCardEvents() {
     document.querySelectorAll('.edit-note').forEach(el => {
         el.removeEventListener('click', handleEdit);
@@ -143,6 +218,14 @@ function attachCardEvents() {
     document.querySelectorAll('.pin-note').forEach(el => {
         el.removeEventListener('click', handlePin);
         el.addEventListener('click', handlePin);
+    });
+    document.querySelectorAll('.task-checkbox').forEach(el => {
+        el.removeEventListener('change', handleTaskCheck);
+        el.addEventListener('change', handleTaskCheck);
+    });
+    document.querySelectorAll('.task-item').forEach(el => {
+        el.removeEventListener('click', handleTaskItemClick);
+        el.addEventListener('click', handleTaskItemClick);
     });
 }
 
@@ -165,7 +248,7 @@ function handleDelete(e) {
     }
 }
 
-// закрепление не меняет updatedAt, иначе откреплённая карточка не вернётся на своё место.
+// закрепление не трогает updatedAt, иначе после открепления карточка прыгнет наверх
 function handlePin(e) {
     e.stopPropagation();
     const id = e.currentTarget.getAttribute('data-id');
@@ -177,12 +260,45 @@ function handlePin(e) {
     }
 }
 
-// эта модалка работает и для заметок,и для задач
+function handleTaskCheck(e) {
+    e.stopPropagation();
+    const id = e.currentTarget.getAttribute('data-id');
+    const index = Number(e.currentTarget.getAttribute('data-index'));
+    setTaskDone(id, index, e.currentTarget.checked);
+}
+
+// даём отмечать задачу кликом по тексту, а не только по маленькому чекбоксу
+function handleTaskItemClick(e) {
+    if(e.target.classList.contains('task-checkbox')) return;
+
+    const checkbox = e.currentTarget.querySelector('.task-checkbox');
+    checkbox.checked = !checkbox.checked;
+    setTaskDone(
+        checkbox.getAttribute('data-id'),
+        Number(checkbox.getAttribute('data-index')),
+        checkbox.checked
+    );
+}
+
+// общее место, где меняется состояние пункта задачи
+function setTaskDone(id, index, done) {
+    const note = notes.find(n => n.id === id);
+
+    if(note && note.items[index]) {
+        note.items[index].done = done;
+        note.updatedAt = Date.now();
+        saveToLocal();
+        renderActiveTab();
+    }
+}
+
+// одна форма используется и для заметок, и для задач
 function openModalForCreate(forceType = 'note') {
     currentEditId = null;
     currentModalMode = 'create';
     currentCreateType = forceType;
     modalTitle.innerText = forceType === 'task' ? 'Новая задача' : 'Новая заметка';
+    bodyInput.placeholder = forceType === 'task' ? 'Каждая задача с новой строки' : 'Содержание';
     titleInput.value = '';
     bodyInput.value = '';
     tagsInput.value = '';
@@ -192,14 +308,15 @@ function openModalForCreate(forceType = 'note') {
     titleInput.focus();
 }
 
-// при редактировании просто раскладываем данные заметки обратно по полям формы.
+// заполняем форму данными выбранной карточки
 function openModalForEdit(note) {
     currentEditId = note.id;
     currentModalMode = 'edit';
     currentCreateType = note.type || 'note';
     modalTitle.innerText = note.type === 'task' ? 'Редактировать задачу' : 'Редактировать заметку';
+    bodyInput.placeholder = note.type === 'task' ? 'Каждая задача с новой строки' : 'Содержание';
     titleInput.value = note.title || '';
-    bodyInput.value = note.content || '';
+    bodyInput.value = note.type === 'task' ? getTaskTextForEditor(note) : note.content || '';
     tagsInput.value = (note.tags || []).join(', ');
     colorSelect.value = note.color || '#242424';
     pinnedInput.checked = Boolean(note.pinned);
@@ -212,14 +329,12 @@ function closeModal() {
     currentEditId = null;
 }
 
-// Сохранение разделено по режиму: новая запись или обновление существующей
+// при сохранении либо создаём новую карточку, либо обновляем старую
 function saveFromModal() {
     const newTitle = titleInput.value.trim() || 'Без названия';
     const newContent = bodyInput.value;
-    const newTags = tagsInput.value
-        .split(',')
-        .map(tag => tag.trim())
-        .filter(Boolean);
+    const newItems = currentCreateType === 'task' ? normalizeTaskItems({ content: newContent }) : [];
+    const newTags = normalizeTags(tagsInput.value);
     const selectedColor = colorSelect.value;
     const isPinned = pinnedInput.checked;
 
@@ -230,6 +345,7 @@ function saveFromModal() {
             title: newTitle,
             content: newContent,
             type: currentCreateType,
+            items: newItems,
             color: selectedColor,
             tags: newTags,
             pinned: isPinned,
@@ -243,6 +359,7 @@ function saveFromModal() {
                 ...notes[idx],
                 title: newTitle,
                 content: newContent,
+                items: currentCreateType === 'task' ? mergeTaskItems(notes[idx].items, newItems) : [],
                 color: selectedColor,
                 tags: newTags,
                 pinned: isPinned,

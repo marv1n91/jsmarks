@@ -113,6 +113,7 @@ body {
     cursor: pointer;
     position: relative;
     min-height: 220px;
+    min-width: 0;
 }
 
 .note-card:hover {
@@ -134,13 +135,14 @@ body {
     margin-bottom: 8px;
     color: white;
     padding-right: 2rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     word-break: break-word;
     white-space: normal;
-    overflow-wrap: break-word; 
     hyphens: auto;
 }
 
-/* Кнопка закрепа живёт поверх карточки, чтобы не двигать текст заголовка */
+/* закреп висит поверх карточки, чтобы не двигать заголовок */
 .pin-note {
     position: absolute;
     top: 14px;
@@ -157,7 +159,7 @@ body {
     transition: 0.2s;
 }
 
-/* значок делаем через CSS, в HTML остаётся пустая кнопка для клика */
+/* сам значок рисуем тут, а в HTML оставляем только кнопку */
 .pin-note::before {
     content: "📌";
     display: block;
@@ -167,7 +169,7 @@ body {
     transition: 0.2s;
 }
 
-/* Активное и hover состояние одинаковые: пользователь сразу видит, что закреп включён */
+/* hover и активное состояние одинаковые, так заметнее включённый закреп */
 .pin-note:hover,
 .pin-note.pinned {
     background: #ffc700;
@@ -185,9 +187,9 @@ body {
     color: white;
     line-height: 1.4;
     margin: 8px 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
     word-break: break-word;
-    white-space: normal;
-    overflow-wrap: break-word;
     hyphens: auto;
 }
 
@@ -238,7 +240,7 @@ body {
     transition: 0.2s;
 }
 
-/* Действия подсвечиваются только при наведении, чтобы карточка не выглядела шумной. */
+/* действия подсвечиваются только при наведении, иначе карточка выглядит слишком шумно */
 .edit-note:hover {
     color: #ffc700;
 }
@@ -274,29 +276,54 @@ body {
 
 .task-list {
     list-style: none;
-    margin: 10px 0 0;
+    margin: 10px 0 12px;
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
+/* строка задачи кликабельная целиком, не только сам чекбокс */
 .task-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     font-size: 0.85rem;
-    margin-bottom: 8px;
-    color: #1e293b;
+    line-height: 1.35;
+    color: #ffffff;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    cursor: pointer;
 }
 
 .task-item input {
     width: 16px;
     height: 16px;
-    accent-color: #3b82f6;
+    margin-top: 1px;
+    flex: 0 0 auto;
+    accent-color: #ffc700;
     cursor: pointer;
+}
+
+.task-item span {
+    min-width: 0;
 }
 
 .completed-task {
     text-decoration: line-through;
-    color: #94a3b8;
+    color: #a7a7a7;
+}
+
+.empty-task-text {
+    opacity: 0.7;
+}
+
+.light-card .task-item {
+    color: #1f1f1f;
+}
+
+.light-card .completed-task {
+    color: #777777;
 }
 
 hr {
