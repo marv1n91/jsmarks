@@ -92,8 +92,8 @@ function renderNoteCard(note) {
       <div class="note-card ${isLight ? 'light-card' : ''}" data-id="${note.id}" data-type="${note.type}" style="background: ${bgColor};">
         <button class="pin-note ${note.pinned ? 'pinned' : ''}" data-id="${note.id}" title="Закрепить" aria-label="Закрепить"></button>
         <div class="note-color-tag" style="background: ${note.color === '#ffffff' ? '#e2e8f0' : note.color};"></div>
-        <div class="note-title">${escapeHtml(note.title)}</div>
-        <div class="note-preview">${escapeHtml(note.content)}</div>
+        <div class="note-title" lang="ru">${escapeHtml(note.title)}</div>
+        <div class="note-preview" lang="ru">${escapeHtml(note.content)}</div>
         ${tagsHtml}
         <div class="note-dates">
           <span>Созд: ${formatDate(note.createdAt)}</span>
