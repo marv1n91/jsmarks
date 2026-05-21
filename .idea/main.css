@@ -207,6 +207,10 @@ body {
     font-size: 0.7rem;
     font-weight: 500;
     color: #ffffff;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
 }
 
 .note-dates {
