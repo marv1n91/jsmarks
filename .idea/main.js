@@ -61,9 +61,11 @@ function getSortedItems() {
 // на этой вкладке показываем только обычные заметки
 function renderNotes() {
     const container = document.getElementById('notesContainer');
+    const searchInput = document.getElementById('search');
     if(!container) return;
 
     const visibleNotes = getSortedItems().filter(note => note.type !== 'task');
+    searchInput.placeholder = 'Поиск заметок';
     container.innerHTML = visibleNotes.map(renderNoteCard).join('') || '<p class="empty-state">Пока нет заметок</p>';
     attachCardEvents();
 }
@@ -71,9 +73,11 @@ function renderNotes() {
 // задачи рендерим отдельно, чтобы не мешать их с заметками
 function renderTasks() {
     const container = document.getElementById('tasksContainer');
+    const searchInput = document.getElementById('search');
     if(!container) return;
 
     const visibleTasks = getSortedItems().filter(note => note.type === 'task');
+    searchInput.placeholder = 'Поиск задач';
     container.innerHTML = visibleTasks.map(renderNoteCard).join('') || '<p class="empty-state">Пока нет задач</p>';
     attachCardEvents();
 }
