@@ -3,6 +3,7 @@ let currentEditId = null;
 let currentModalMode = 'create';
 let activeTab = 'notes';
 let currentCreateType = 'note';
+let currentSearchQuery = '';
 
 const modal = document.getElementById('editorModal');
 const modalTitle = document.getElementById('modalTitle');
@@ -11,6 +12,9 @@ const bodyInput = document.getElementById('noteBodyInput');
 const tagsInput = document.getElementById('noteTagsInput');
 const colorSelect = document.getElementById('noteColorInput');
 const pinnedInput = document.getElementById('notePinnedInput');
+const originalRenderNotes = renderNotes;
+const originalRenderTasks = renderTasks;
+const searchInput = document.getElementById('search');
 
 // берём сохранённые заметки из браузера
 function loadData() {
@@ -64,7 +68,10 @@ function renderNotes() {
     const searchInput = document.getElementById('search');
     if(!container) return;
 
-    const visibleNotes = getSortedItems().filter(note => note.type !== 'task');
+    let visibleNotes = getSortedItems().filter(note => note.type !== 'task');
+    if (currentSearchQuery.trim()) {
+        visibleNotes = visibleNotes.filter(note => filterBySearch(note, currentSearchQuery));
+    }
     searchInput.placeholder = 'Поиск заметок';
     container.innerHTML = visibleNotes.map(renderNoteCard).join('') || '<p class="empty-state">Пока нет заметок</p>';
     attachCardEvents();
@@ -76,10 +83,37 @@ function renderTasks() {
     const searchInput = document.getElementById('search');
     if(!container) return;
 
-    const visibleTasks = getSortedItems().filter(note => note.type === 'task');
+    let visibleTasks = getSortedItems().filter(note => note.type === 'task');
+    if (currentSearchQuery.trim()) {
+        visibleTasks = visibleTasks.filter(task => filterBySearch(task, currentSearchQuery));
+    }
     searchInput.placeholder = 'Поиск задач';
     container.innerHTML = visibleTasks.map(renderNoteCard).join('') || '<p class="empty-state">Пока нет задач</p>';
     attachCardEvents();
+}
+
+function filterBySearch(note, query) {
+    if (!query.trim()) return true; // если запрос пустой, показываем всё
+
+    const lowerQuery = query.toLowerCase();
+    // ищем совпадение в заголовке, содержимом или тегах
+    const titleMatch = note.title.toLowerCase().includes(lowerQuery);
+    const contentMatch = note.content.toLowerCase().includes(lowerQuery);
+    const tagsMatch = note.tags.some(tag => tag.toLowerCase().includes(lowerQuery));
+    // для задач дополнительно ищем в пунктах списка (items)
+    const itemsMatch = note.type === 'task' && note.items.some(item => item.text.toLowerCase().includes(lowerQuery));
+
+    return titleMatch || contentMatch || tagsMatch || itemsMatch;
+}
+
+if (typeof renderNotes !== 'undefined') window.renderNotes = renderNotes;
+if (typeof renderTasks !== 'undefined') window.renderTasks = renderTasks;
+
+if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+        currentSearchQuery = e.target.value;
+        renderActiveTab(); // перерисовываем текущую вкладку с учётом поиска
+    });
 }
 
 // карточку собираем тут, чтобы не дублировать разметку для заметок и задач
