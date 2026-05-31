@@ -4,6 +4,11 @@ let currentModalMode = 'create';
 let activeTab = 'notes';
 let currentCreateType = 'note';
 let currentSearchQuery = '';
+let currentViewMode = 'grid';
+let currentPinnedFilter = 'all';
+let currentTagFilter = '';
+let currentSortMode = 'updated_desc';
+const DEFAULT_NOTE_COLOR = '#242424';
 
 const modal = document.getElementById('editorModal');
 const modalTitle = document.getElementById('modalTitle');
@@ -12,31 +17,34 @@ const bodyInput = document.getElementById('noteBodyInput');
 const tagsInput = document.getElementById('noteTagsInput');
 const colorSelect = document.getElementById('noteColorInput');
 const pinnedInput = document.getElementById('notePinnedInput');
-const originalRenderNotes = renderNotes;
-const originalRenderTasks = renderTasks;
 const searchInput = document.getElementById('search');
+const viewGridBtn = document.getElementById('viewGridBtn');
+const viewListBtn = document.getElementById('viewListBtn');
+const filterPinnedSelect = document.getElementById('filterPinnedSelect');
+const filterTagInput = document.getElementById('filterTagInput');
+const tagsList = document.getElementById('tagsList');
+const sortSelect = document.getElementById('sortSelect');
+const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
-// берём сохранённые заметки из браузера
 function loadData() {
     const stored = localStorage.getItem('notes_app_data');
     notes = stored ? JSON.parse(stored).map(normalizeNote) : [];
     renderActiveTab();
 }
 
-// если в localStorage лежат старые заметки, добавляем им новые поля
 function normalizeNote(note) {
     const now = Date.now();
     return {
         id: note.id || now.toString(),
-        title: note.title || 'Без названия',
-        content: note.content || '',
-        type: note.type || 'note',
-        color: note.color || '#242424',
+        title: note.title,
+        content: note.content,
+        type: note.type,
+        color: note.color,
         tags: Array.isArray(note.tags) ? note.tags : [],
         items: normalizeTaskItems(note),
         pinned: Boolean(note.pinned),
-        createdAt: note.createdAt || now,
-        updatedAt: note.updatedAt || note.createdAt || now
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt || note.createdAt
     };
 }
 
@@ -52,95 +60,147 @@ function renderActiveTab() {
     }
 }
 
-// закреплённые всегда наверху, остальные идут по последнему изменению
 function getSortedItems() {
     return [...notes].sort((a, b) => {
         if(Boolean(a.pinned) !== Boolean(b.pinned)) {
             return Number(b.pinned) - Number(a.pinned);
         }
-        return (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt);
+        if(currentSortMode === 'created_desc') {
+            return (b.createdAt || 0) - (a.createdAt || 0);
+        }
+        if(currentSortMode === 'title_asc') {
+            return (a.title || '').localeCompare(b.title || '', 'ru', { sensitivity: 'base' });
+        }
+        return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
     });
 }
 
-// на этой вкладке показываем только обычные заметки
+function passPinnedFilter(note) {
+    if(currentPinnedFilter === 'all') return true;
+    if(currentPinnedFilter === 'pinned') return Boolean(note.pinned);
+    return !note.pinned;
+}
+
+function passTagFilter(note) {
+    const query = currentTagFilter.trim().toLowerCase();
+    if(!query) return true;
+    return note.tags.some(tag => tag.toLowerCase().includes(query));
+}
+
+function getVisibleItemsForTab(tabType) {
+    const itemsByTab = getSortedItems().filter(note => tabType === 'notes' ? note.type !== 'task' : note.type === 'task');
+
+    return itemsByTab.filter(note => {
+        return passPinnedFilter(note)
+            && passTagFilter(note)
+            && (!currentSearchQuery.trim() || filterBySearch(note, currentSearchQuery));
+    });
+}
+
+function updateViewClass(container) {
+    if(!container) return;
+    container.classList.toggle('notes-list', currentViewMode === 'list');
+    container.classList.toggle('notes-grid', currentViewMode !== 'list');
+}
+
+function updateTagsDatalist() {
+    if(!tagsList) return;
+    const allTags = Array.from(new Set(
+        notes.flatMap(note => note.tags.map(tag => tag.trim())).filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b, 'ru', { sensitivity: 'base' }));
+    tagsList.innerHTML = allTags.map(tag => `<option value="${escapeHtml(tag)}"></option>`).join('');
+}
+
+function resetFilters() {
+    currentSearchQuery = '';
+    currentPinnedFilter = 'all';
+    currentTagFilter = '';
+    currentSortMode = 'updated_desc';
+
+    if(searchInput) searchInput.value = '';
+    if(filterPinnedSelect) filterPinnedSelect.value = 'all';
+    if(filterTagInput) filterTagInput.value = '';
+    if(sortSelect) sortSelect.value = 'updated_desc';
+
+    renderActiveTab();
+}
+
 function renderNotes() {
     const container = document.getElementById('notesContainer');
-    const searchInput = document.getElementById('search');
-    if(!container) return;
+    if(!container || !searchInput) return;
 
-    let visibleNotes = getSortedItems().filter(note => note.type !== 'task');
-    if (currentSearchQuery.trim()) {
-        visibleNotes = visibleNotes.filter(note => filterBySearch(note, currentSearchQuery));
-    }
+    updateViewClass(container);
+    const visibleNotes = getVisibleItemsForTab('notes');
+    const emptyMessage = currentSearchQuery.trim()
+        ? 'Ничего не найдено'
+        : 'Пока нет заметок';
     searchInput.placeholder = 'Поиск заметок';
-    container.innerHTML = visibleNotes.map(renderNoteCard).join('') || '<p class="empty-state">Пока нет заметок</p>';
+    container.innerHTML = visibleNotes.map(renderNoteCard).join('') || `<p class="empty-state">${emptyMessage}</p>`;
     attachCardEvents();
 }
 
-// задачи рендерим отдельно, чтобы не мешать их с заметками
 function renderTasks() {
     const container = document.getElementById('tasksContainer');
-    const searchInput = document.getElementById('search');
-    if(!container) return;
+    if(!container || !searchInput) return;
 
-    let visibleTasks = getSortedItems().filter(note => note.type === 'task');
-    if (currentSearchQuery.trim()) {
-        visibleTasks = visibleTasks.filter(task => filterBySearch(task, currentSearchQuery));
-    }
+    updateViewClass(container);
+    const visibleTasks = getVisibleItemsForTab('tasks');
+    const emptyMessage = currentSearchQuery.trim()
+        ? 'Ничего не найдено'
+        : 'Пока нет задач';
     searchInput.placeholder = 'Поиск задач';
-    container.innerHTML = visibleTasks.map(renderNoteCard).join('') || '<p class="empty-state">Пока нет задач</p>';
+    container.innerHTML = visibleTasks.map(renderNoteCard).join('') || `<p class="empty-state">${emptyMessage}</p>`;
     attachCardEvents();
 }
 
 function filterBySearch(note, query) {
-    if (!query.trim()) return true; // если запрос пустой, показываем всё
+    if (!query.trim()) return true;
 
     const lowerQuery = query.toLowerCase();
-    // ищем совпадение в заголовке, содержимом или тегах
     const titleMatch = note.title.toLowerCase().includes(lowerQuery);
     const contentMatch = note.content.toLowerCase().includes(lowerQuery);
     const tagsMatch = note.tags.some(tag => tag.toLowerCase().includes(lowerQuery));
-    // для задач дополнительно ищем в пунктах списка (items)
     const itemsMatch = note.type === 'task' && note.items.some(item => item.text.toLowerCase().includes(lowerQuery));
 
     return titleMatch || contentMatch || tagsMatch || itemsMatch;
 }
 
-if (typeof renderNotes !== 'undefined') window.renderNotes = renderNotes;
-if (typeof renderTasks !== 'undefined') window.renderTasks = renderTasks;
-
 if (searchInput) {
     searchInput.addEventListener('input', function(e) {
         currentSearchQuery = e.target.value;
-        renderActiveTab(); // перерисовываем текущую вкладку с учётом поиска
+        renderActiveTab();
+    });
+
+    searchInput.addEventListener('blur', function(e) {
+        const trimmedValue = e.target.value.trim();
+        if (e.target.value !== trimmedValue) {
+            e.target.value = trimmedValue;
+            currentSearchQuery = trimmedValue;
+            renderActiveTab();
+        }
     });
 }
 
-// карточку собираем тут, чтобы не дублировать разметку для заметок и задач
 function renderNoteCard(note) {
-    const bgColor = note.color || '#242424';
+    const isLightTheme = document.body.classList.contains('light-theme');
+    const hasDefaultColor = !note.color || note.color === DEFAULT_NOTE_COLOR;
+    const bgColor = hasDefaultColor && isLightTheme ? '#ffffff' : (note.color || DEFAULT_NOTE_COLOR);
     const isLight = bgColor === '#ffffff';
     const bodyHtml = note.type === 'task' ? renderTaskList(note) : renderNoteText(note.content);
     const tagsHtml = note.tags.length
         ? `<div class="tags">${note.tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}</div>`
         : '';
-    const updatedText = note.updatedAt && note.updatedAt !== note.createdAt
-        ? `<span>Изм: ${formatDate(note.updatedAt)}</span>`
-        : '';
 
     return `
       <div class="note-card ${isLight ? 'light-card' : ''}" data-id="${note.id}" data-type="${note.type}" style="background: ${bgColor};">
         <button class="pin-note ${note.pinned ? 'pinned' : ''}" data-id="${note.id}" title="Закрепить" aria-label="Закрепить"></button>
-        <div class="note-color-tag" style="background: ${note.color === '#ffffff' ? '#e2e8f0' : note.color};"></div>
         <div class="note-title" lang="ru">${escapeHtml(note.title)}</div>
         ${bodyHtml}
         ${tagsHtml}
         <div class="note-dates">
-          <span>Созд: ${formatDate(note.createdAt)}</span>
-          ${updatedText}
+          <span>Отредактировано: ${formatDate(note.updatedAt)}</span>
         </div>
         <div class="note-footer">
-          <span>${note.type === 'task' ? 'Задача' : 'Заметка'}</span>
           <span class="card-actions">
             <button class="edit-note" data-id="${note.id}">Изменить</button>
             <button class="delete-note" data-id="${note.id}">Удалить</button>
@@ -154,7 +214,6 @@ function renderNoteText(content) {
     return `<div class="note-preview" lang="ru">${escapeHtml(content)}</div>`;
 }
 
-// рисуем пункты задачи с чекбоксами прямо внутри карточки
 function renderTaskList(note) {
     if(!note.items.length) {
         return '<div class="note-preview empty-task-text">Нет задач</div>';
@@ -180,7 +239,6 @@ function formatDate(timestamp) {
     });
 }
 
-// убираем пустые и повторяющиеся теги
 function normalizeTags(tagsText) {
     const seenTags = new Set();
 
@@ -191,13 +249,11 @@ function normalizeTags(tagsText) {
         .filter(tag => {
             const tagKey = tag.toLowerCase();
             if(seenTags.has(tagKey)) return false;
-
             seenTags.add(tagKey);
             return true;
         });
 }
 
-// каждая строка в задаче становится отдельным пунктом чеклиста
 function normalizeTaskItems(note) {
     if(Array.isArray(note.items)) {
         return note.items
@@ -218,7 +274,6 @@ function getTaskTextForEditor(note) {
     return note.items.map(item => item.text).join('\n');
 }
 
-// если текст пункта не поменялся, оставляем его старое состояние checked
 function mergeTaskItems(oldItems = [], newItems = []) {
     return newItems.map((item, index) => {
         const oldItem = oldItems[index];
@@ -231,7 +286,6 @@ function mergeTaskItems(oldItems = [], newItems = []) {
     });
 }
 
-// пользовательский текст выводим как текст, а не как HTML
 function escapeHtml(str) {
     if(!str) return '';
     return String(str).replace(/[&<>"]/g, function(m) {
@@ -243,7 +297,6 @@ function escapeHtml(str) {
     });
 }
 
-// карточки пересоздаются через innerHTML, поэтому события вешаем заново
 function attachCardEvents() {
     document.querySelectorAll('.edit-note').forEach(el => {
         el.removeEventListener('click', handleEdit);
@@ -271,9 +324,7 @@ function handleEdit(e) {
     e.stopPropagation();
     const id = e.currentTarget.getAttribute('data-id');
     const note = notes.find(n => n.id === id);
-    if(note) {
-        openModalForEdit(note);
-    }
+    if(note) openModalForEdit(note);
 }
 
 function handleDelete(e) {
@@ -282,11 +333,11 @@ function handleDelete(e) {
     if(confirm('Удалить заметку?')) {
         notes = notes.filter(n => n.id !== id);
         saveToLocal();
+        updateTagsDatalist();
         renderActiveTab();
     }
 }
 
-// закрепление не трогает updatedAt, иначе после открепления карточка прыгнет наверх
 function handlePin(e) {
     e.stopPropagation();
     const id = e.currentTarget.getAttribute('data-id');
@@ -305,7 +356,6 @@ function handleTaskCheck(e) {
     setTaskDone(id, index, e.currentTarget.checked);
 }
 
-// даём отмечать задачу кликом по тексту, а не только по маленькому чекбоксу
 function handleTaskItemClick(e) {
     if(e.target.classList.contains('task-checkbox')) return;
 
@@ -318,7 +368,6 @@ function handleTaskItemClick(e) {
     );
 }
 
-// общее место, где меняется состояние пункта задачи
 function setTaskDone(id, index, done) {
     const note = notes.find(n => n.id === id);
 
@@ -330,7 +379,6 @@ function setTaskDone(id, index, done) {
     }
 }
 
-// одна форма используется и для заметок, и для задач
 function openModalForCreate(forceType = 'note') {
     currentEditId = null;
     currentModalMode = 'create';
@@ -340,13 +388,12 @@ function openModalForCreate(forceType = 'note') {
     titleInput.value = '';
     bodyInput.value = '';
     tagsInput.value = '';
-    colorSelect.value = '#242424';
+    colorSelect.value = DEFAULT_NOTE_COLOR;
     pinnedInput.checked = false;
     modal.style.display = 'flex';
     titleInput.focus();
 }
 
-// заполняем форму данными выбранной карточки
 function openModalForEdit(note) {
     currentEditId = note.id;
     currentModalMode = 'edit';
@@ -356,7 +403,7 @@ function openModalForEdit(note) {
     titleInput.value = note.title || '';
     bodyInput.value = note.type === 'task' ? getTaskTextForEditor(note) : note.content || '';
     tagsInput.value = (note.tags || []).join(', ');
-    colorSelect.value = note.color || '#242424';
+    colorSelect.value = note.color || DEFAULT_NOTE_COLOR;
     pinnedInput.checked = Boolean(note.pinned);
     modal.style.display = 'flex';
     titleInput.focus();
@@ -367,11 +414,23 @@ function closeModal() {
     currentEditId = null;
 }
 
-// при сохранении либо создаём новую карточку, либо обновляем старую
 function saveFromModal() {
-    const newTitle = titleInput.value.trim() || 'Без названия';
-    const newContent = bodyInput.value;
-    const newItems = currentCreateType === 'task' ? normalizeTaskItems({ content: newContent }) : [];
+    const titleTrim = titleInput.value.trim();
+    const contentTrim = bodyInput.value.trim();
+    const newItems = currentCreateType === 'task' ? normalizeTaskItems({ content: bodyInput.value }) : [];
+
+    if(currentCreateType === 'task') {
+        if(newItems.length === 0) {
+            alert('Вы ничего не написали. Добавьте хотя бы один пункт в список задач.');
+            return;
+        }
+    } else if(!titleTrim && !contentTrim) {
+        alert('Вы ничего не написали. Заполните заголовок или содержание заметки.');
+        return;
+    }
+
+    const newTitle = titleTrim || 'Без названия';
+    const newContent = contentTrim;
     const newTags = normalizeTags(tagsInput.value);
     const selectedColor = colorSelect.value;
     const isPinned = pinnedInput.checked;
@@ -407,6 +466,7 @@ function saveFromModal() {
     }
 
     saveToLocal();
+    updateTagsDatalist();
     closeModal();
     renderActiveTab();
 }
@@ -433,10 +493,16 @@ function switchTab(tabId) {
     renderActiveTab();
 }
 
+function setViewMode(mode) {
+    currentViewMode = mode === 'list' ? 'list' : 'grid';
+    if(viewGridBtn) viewGridBtn.classList.toggle('active', currentViewMode === 'grid');
+    if(viewListBtn) viewListBtn.classList.toggle('active', currentViewMode === 'list');
+    renderActiveTab();
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const tab = e.currentTarget.getAttribute('data-tab');
-        switchTab(tab);
+        switchTab(e.currentTarget.getAttribute('data-tab'));
     });
 });
 
@@ -444,8 +510,145 @@ document.getElementById('createNoteBtn').addEventListener('click', () => openMod
 document.getElementById('createTaskBtn').addEventListener('click', () => openModalForCreate('task'));
 document.getElementById('modalCancel').addEventListener('click', closeModal);
 document.getElementById('modalSave').addEventListener('click', saveFromModal);
+
+if(viewGridBtn) viewGridBtn.addEventListener('click', () => setViewMode('grid'));
+if(viewListBtn) viewListBtn.addEventListener('click', () => setViewMode('list'));
+if(filterPinnedSelect) {
+    filterPinnedSelect.addEventListener('change', (e) => {
+        currentPinnedFilter = e.target.value;
+        renderActiveTab();
+    });
+}
+if(filterTagInput) {
+    filterTagInput.addEventListener('input', (e) => {
+        currentTagFilter = e.target.value;
+        renderActiveTab();
+    });
+}
+if(sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+        currentSortMode = e.target.value;
+        renderActiveTab();
+    });
+}
+if(resetFiltersBtn) resetFiltersBtn.addEventListener('click', resetFilters);
+
 window.addEventListener('click', (e) => {
     if(e.target === modal) closeModal();
 });
 
 loadData();
+updateTagsDatalist();
+
+const settingsModal = document.getElementById('settingsModal');
+const themeSelect = document.getElementById('themeSelect');
+const fontSelect = document.getElementById('fontSelect');
+const importInput = document.getElementById('importInput');
+const clearDataBtn = document.getElementById('clearDataBtn');
+
+let currentTheme = localStorage.getItem('notes_app_theme') || 'dark';
+applyTheme(currentTheme);
+renderActiveTab();
+
+let currentFont = localStorage.getItem('notes_app_font') || 'Comfortaa';
+applyFont(currentFont);
+
+function applyTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+    if(themeSelect) themeSelect.value = theme;
+}
+
+function applyFont(font) {
+    if (font === 'Nunito') {
+        document.documentElement.style.setProperty('--main-font', "'Nunito', sans-serif");
+    } else if (font === 'Roboto') {
+        document.documentElement.style.setProperty('--main-font', "'Roboto', sans-serif");
+    } else {
+        document.documentElement.style.setProperty('--main-font', "'Comfortaa', cursive, sans-serif");
+    }
+    if (fontSelect) fontSelect.value = font;
+}
+
+const settingsBtn = document.getElementById('settingsBtn');
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+        settingsModal.style.display = 'flex';
+    });
+}
+
+document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+    settingsModal.style.display = 'none';
+});
+
+window.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        settingsModal.style.display = 'none';
+    }
+});
+
+themeSelect.addEventListener('change', (e) => {
+    currentTheme = e.target.value;
+    localStorage.setItem('notes_app_theme', currentTheme);
+    applyTheme(currentTheme);
+    renderActiveTab();
+});
+
+if (fontSelect) {
+    fontSelect.addEventListener('change', (e) => {
+        currentFont = e.target.value;
+        localStorage.setItem('notes_app_font', currentFont);
+        applyFont(currentFont);
+    });
+}
+
+if (clearDataBtn) {
+    clearDataBtn.addEventListener('click', () => {
+        if (!confirm('Удалить все заметки и задачи без возможности восстановления?')) return;
+        notes = [];
+        saveToLocal();
+        updateTagsDatalist();
+        renderActiveTab();
+        settingsModal.style.display = 'none';
+    });
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+    const dataStr = JSON.stringify(notes, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `notes_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+importInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const parsed = JSON.parse(event.target.result);
+            if (Array.isArray(parsed)) {
+                notes = parsed.map(normalizeNote);
+                saveToLocal();
+                updateTagsDatalist();
+                renderActiveTab();
+                alert('Данные успешно восстановлены!');
+                settingsModal.style.display = 'none';
+            } else {
+                alert('Ошибка: Неверный формат файла.');
+            }
+        } catch (err) {
+            alert('Ошибка чтения файла. Убедитесь, что это правильный JSON.');
+        }
+        e.target.value = '';
+    };
+    reader.readAsText(file);
+});
