@@ -371,6 +371,10 @@ body {
     color: #ffc700;
 }
 
+.share-note:hover {
+    color: #ffc700;
+}
+
 .delete-note:hover {
     color: #ff4d4d;
 }
@@ -639,4 +643,62 @@ body.light-theme .empty-state {
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
+}
+
+.background-shared-note-card {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.shared-note-card{
+    max-width: 600px;
+    width: 100%;
+    background: #242424;
+    border-radius: 20px;
+    padding: 24px;
+    color: #ffffff;
+    position: relative;
+}
+
+.close-note{
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: inherit;
+}
+
+.close-note:hover{
+    color: red;
+}
+
+.shared-note-title{
+    max-width: 500px;
+    margin-bottom: 16px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    hyphens: auto;
+}
+
+.shared-note-content{
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    hyphens: auto;
+}
+
+.inscription-note{
+    margin-top: 20px;
+    font-size: 0.7rem;
+    opacity: 0.7;
 }

@@ -204,6 +204,7 @@ function renderNoteCard(note) {
           <span class="card-actions">
             <button class="edit-note" data-id="${note.id}">Изменить</button>
             <button class="delete-note" data-id="${note.id}">Удалить</button>
+            <button class="share-note" data-id="${note.id}">Поделиться</button>
           </span>
         </div>
       </div>
@@ -318,6 +319,10 @@ function attachCardEvents() {
         el.removeEventListener('click', handleTaskItemClick);
         el.addEventListener('click', handleTaskItemClick);
     });
+    document.querySelectorAll('.share-note').forEach(el => {
+        el.removeEventListener('click', handleShare);
+        el.addEventListener('click', handleShare);
+    });
 }
 
 function handleEdit(e) {
@@ -366,6 +371,75 @@ function handleTaskItemClick(e) {
         Number(checkbox.getAttribute('data-index')),
         checkbox.checked
     );
+}
+
+function generateLink(note) {
+    const shareData = {
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        type: note.type,
+        color: note.color,
+        tags: note.tags,
+        items: note.items,
+        sharedAt: Date.now()
+    };
+    const jsonStr = JSON.stringify(shareData);
+    const encoded = btoa(encodeURIComponent(jsonStr));
+    return `${window.location.origin}${window.location.pathname}#shared=${encoded}`;
+}
+
+async function copyLink(note) {
+    const link = generateLink(note);
+    try {
+        await navigator.clipboard.writeText(link);
+        alert('Ссылка скопирована');
+    } catch (err) {
+        prompt('Скопируйте ссылку вручную:', link);
+    }
+}
+
+function handleShare(e) {
+    e.stopPropagation();
+    const id = e.currentTarget.getAttribute('data-id');
+    const note = notes.find(n => n.id === id);
+    if (note) copyLink(note);
+}
+
+function showSharedNote(sharedNote) {
+    const modalHtml = `
+        <div class="background-shared-note-card" id="sharedNoteModal">
+            <div class="shared-note-card">
+                <h2 class="shared-note-title">${escapeHtml(sharedNote.title)}</h2>
+                <button class="close-note" id="closeSharedModal">✕</button>
+                ${sharedNote.type === 'task' ? renderSharedTaskList(sharedNote) : 
+                `<div class="shared-note-content">${escapeHtml(sharedNote.content)}</div>`}
+                ${sharedNote.tags?.length ? `
+                <div style="margin-top: 16px;">
+                ${sharedNote.tags.map(t => `<span style="background: rgba(255,255,255,0.14); padding: 4px 10px; border-radius: 40px;">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+                <div class="inscription-note">Поделились ${new Date(sharedNote.sharedAt).toLocaleString()}</div>
+            </div>
+        </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const closeModalBtn = document.getElementById('closeSharedModal');
+    const modalRoot = document.getElementById('sharedNoteModal');
+    if (closeModalBtn) closeModalBtn.onclick = () => modalRoot.remove();
+    if (modalRoot) modalRoot.onclick = (e) => { if (e.target === modalRoot) modalRoot.remove(); };
+    window.location.hash = '';
+}
+
+function renderSharedTaskList(note) {
+    if (!note.items?.length) return '<div>Нет задач</div>';
+    return `<ul style="list-style: none; padding: 0;">${note.items.map(item => `<li style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"><input type="checkbox" ${item.done ? 'checked' : ''} disabled> <span style="${item.done ? 'text-decoration: line-through;' : ''}">${escapeHtml(item.text)}</span></li>`).join('')}</ul>`;
+}
+
+function checkForSharedNote() {
+    if (!window.location.hash.includes('#shared=')) return;
+    try {
+        const encoded = window.location.hash.split('#shared=')[1];
+        const sharedNote = JSON.parse(decodeURIComponent(atob(encoded)));
+        showSharedNote(sharedNote);
+    } catch (err) { console.error('Ошибка открытия заметки', err); }
 }
 
 function setTaskDone(id, index, done) {
@@ -539,6 +613,7 @@ window.addEventListener('click', (e) => {
 
 loadData();
 updateTagsDatalist();
+checkForSharedNote();
 
 const settingsModal = document.getElementById('settingsModal');
 const themeSelect = document.getElementById('themeSelect');
