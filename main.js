@@ -406,7 +406,7 @@ function handleShare(e) {
 }
 
 function showSharedNote(sharedNote) {
-    const isLight = sharedNote.color === '#ffffff';
+    const isLight = sharedNote.color === '#ffffff' || sharedNote.color === '#f8f32b';
 
     const modalHtml = `
         <div class="background-shared-note-card" id="sharedNoteModal">
