@@ -184,7 +184,7 @@ if (searchInput) {
 function renderNoteCard(note) {
     const hasDefaultColor = !note.color || note.color === DEFAULT_NOTE_COLOR;
     const bgColor = note.color || DEFAULT_NOTE_COLOR;
-    const isLight = bgColor === '#ffffff';
+    const isLight = bgColor === '#ffffff' || bgColor === '#f8f32b';
     const bodyHtml = note.type === 'task' ? renderTaskList(note) : renderNoteText(note.content);
     const tagsHtml = note.tags.length
         ? `<div class="tags">${note.tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}</div>`
