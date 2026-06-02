@@ -197,7 +197,7 @@ function renderNoteCard(note) {
         ${bodyHtml}
         ${tagsHtml}
         <div class="note-dates">
-          <span>Отредактировано: ${formatDate(note.updatedAt)}</span>
+          <span>${formatDate(note.updatedAt)}</span>
         </div>
         <div class="note-footer">
           <span class="card-actions">
@@ -422,7 +422,7 @@ function showSharedNote(sharedNote) {
                     ${sharedNote.tags.map(t => `<span class="tag">#${escapeHtml(t)}</span>`).join('')}
                 </div>` : ''}
 
-                <div class="inscription-note">Поделились ${new Date(sharedNote.sharedAt).toLocaleString()}</div>
+                <div class="inscription-note">${new Date(sharedNote.sharedAt).toLocaleString()}</div>
             </div>
         </div>`;
 
