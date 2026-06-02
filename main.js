@@ -9,6 +9,7 @@ let currentPinnedFilter = 'all';
 let currentTagFilter = '';
 let currentSortMode = 'updated_desc';
 const DEFAULT_NOTE_COLOR = '#242424';
+const SHARE_COLORS = ['#242424', '#ffffff', '#f8f32b', '#173528', '#182f3b', '#3b1d2d'];
 
 const modal = document.getElementById('editorModal');
 const modalTitle = document.getElementById('modalTitle');
@@ -297,6 +298,76 @@ function escapeHtml(str) {
     });
 }
 
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toastContainer');
+    if(!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    }, 2600);
+}
+
+function showConfirm(message, { okText = 'Удалить', cancelText = 'Отмена', danger = true } = {}) {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-card">
+                <p class="confirm-text">${escapeHtml(message)}</p>
+                <div class="confirm-buttons">
+                    <button class="secondary confirm-cancel">${escapeHtml(cancelText)}</button>
+                    <button class="${danger ? 'danger' : 'primary'} confirm-ok">${escapeHtml(okText)}</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const cleanup = result => { overlay.remove(); resolve(result); };
+        overlay.querySelector('.confirm-ok').onclick = () => cleanup(true);
+        overlay.querySelector('.confirm-cancel').onclick = () => cleanup(false);
+        overlay.onclick = e => { if(e.target === overlay) cleanup(false); };
+    });
+}
+
+function showShareDialog(link) {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+        <div class="confirm-card share-card">
+            <h3 class="share-title">Ссылка на заметку</h3>
+            <textarea class="share-link" readonly rows="3"></textarea>
+            <div class="confirm-buttons">
+                <button class="secondary share-close">Закрыть</button>
+                <button class="primary share-copy">Копировать</button>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+    const field = overlay.querySelector('.share-link');
+    field.value = link;
+    field.focus();
+    field.select();
+    const close = () => overlay.remove();
+    overlay.querySelector('.share-close').onclick = close;
+    overlay.onclick = e => { if(e.target === overlay) close(); };
+    overlay.querySelector('.share-copy').onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(link);
+        } catch {
+            field.select();
+            document.execCommand('copy');
+        }
+        showToast('Ссылка скопирована', 'success');
+    };
+}
+
 function attachCardEvents() {
     document.querySelectorAll('.edit-note').forEach(el => {
         el.removeEventListener('click', handleEdit);
@@ -331,10 +402,10 @@ function handleEdit(e) {
     if(note) openModalForEdit(note);
 }
 
-function handleDelete(e) {
+async function handleDelete(e) {
     e.stopPropagation();
     const id = e.currentTarget.getAttribute('data-id');
-    if(confirm('Удалить заметку?')) {
+    if(await showConfirm('Удалить заметку?')) {
         notes = notes.filter(n => n.id !== id);
         saveToLocal();
         updateTagsDatalist();
@@ -372,37 +443,64 @@ function handleTaskItemClick(e) {
     );
 }
 
-function generateLink(note) {
-    const shareData = {
-        id: note.id,
-        title: note.title,
-        content: note.content,
-        type: note.type,
-        color: note.color,
-        tags: note.tags,
-        items: note.items,
-        sharedAt: Date.now()
-    };
-    const jsonStr = JSON.stringify(shareData);
-    const encoded = btoa(encodeURIComponent(jsonStr));
-    return `${window.location.origin}${window.location.pathname}#shared=${encoded}`;
+function bytesToBase64Url(str) {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function copyLink(note) {
-    const link = generateLink(note);
-    try {
-        await navigator.clipboard.writeText(link);
-        alert('Ссылка скопирована');
-    } catch (err) {
-        prompt('Скопируйте ссылку вручную:', link);
+function base64UrlToStr(b64) {
+    const binary = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+}
+
+function expandSharedPayload(p) {
+    const isTask = p.y === 1;
+    let color;
+    if (p.k === undefined) color = SHARE_COLORS[0];
+    else if (typeof p.k === 'number') color = SHARE_COLORS[p.k] || SHARE_COLORS[0];
+    else color = p.k;
+
+    return {
+        title: p.t || '',
+        content: p.c || '',
+        type: isTask ? 'task' : 'note',
+        color,
+        tags: Array.isArray(p.g) ? p.g : [],
+        items: isTask && Array.isArray(p.i) ? p.i.map(it => ({ text: it[0] || '', done: it[1] === 1 })) : [],
+        sharedAt: Date.now()
+    };
+}
+
+function generateLink(note) {
+    const payload = { t: note.title };
+
+    if (note.type === 'task') {
+        payload.y = 1;
+        payload.i = note.items.map(it => it.done ? [it.text, 1] : [it.text]);
+    } else if (note.content) {
+        payload.c = note.content;
     }
+
+    const colorIndex = SHARE_COLORS.indexOf(note.color);
+    if (note.color && colorIndex !== 0) {
+        payload.k = colorIndex >= 0 ? colorIndex : note.color;
+    }
+    if (note.tags && note.tags.length) {
+        payload.g = note.tags;
+    }
+
+    const encoded = bytesToBase64Url(JSON.stringify(payload));
+    return `${window.location.origin}${window.location.pathname}#s=${encoded}`;
 }
 
 function handleShare(e) {
     e.stopPropagation();
     const id = e.currentTarget.getAttribute('data-id');
     const note = notes.find(n => n.id === id);
-    if (note) copyLink(note);
+    if (note) showShareDialog(generateLink(note));
 }
 
 function showSharedNote(sharedNote) {
@@ -450,11 +548,17 @@ function renderSharedTaskList(note, isLight) {
 }
 
 function checkForSharedNote() {
-    if (!window.location.hash.includes('#shared=')) return;
+    const hash = window.location.hash;
     try {
-        const encoded = window.location.hash.split('#shared=')[1];
-        const sharedNote = JSON.parse(decodeURIComponent(atob(encoded)));
-        showSharedNote(sharedNote);
+        if (hash.includes('#s=')) {
+            const encoded = hash.split('#s=')[1];
+            const payload = JSON.parse(base64UrlToStr(encoded));
+            showSharedNote(expandSharedPayload(payload));
+        } else if (hash.includes('#shared=')) {
+            const encoded = hash.split('#shared=')[1];
+            const sharedNote = JSON.parse(decodeURIComponent(atob(encoded)));
+            showSharedNote(sharedNote);
+        }
     } catch (err) { console.error('Ошибка открытия заметки', err); }
 }
 
@@ -463,7 +567,6 @@ function setTaskDone(id, index, done) {
 
     if(note && note.items[index]) {
         note.items[index].done = done;
-        note.updatedAt = Date.now();
         saveToLocal();
         renderActiveTab();
     }
@@ -511,11 +614,11 @@ function saveFromModal() {
 
     if(currentCreateType === 'task') {
         if(newItems.length === 0) {
-            alert('Вы ничего не написали. Добавьте хотя бы один пункт в список задач.');
+            showToast('Добавьте хотя бы один пункт в список задач', 'error');
             return;
         }
     } else if(!titleTrim && !contentTrim) {
-        alert('Вы ничего не написали. Заполните заголовок или содержание заметки.');
+        showToast('Заполните заголовок или содержание заметки', 'error');
         return;
     }
 
@@ -697,8 +800,8 @@ if (fontSelect) {
 }
 
 if (clearDataBtn) {
-    clearDataBtn.addEventListener('click', () => {
-        if (!confirm('Удалить все заметки и задачи без возможности восстановления?')) return;
+    clearDataBtn.addEventListener('click', async () => {
+        if (!await showConfirm('Удалить все заметки и задачи без возможности восстановления?')) return;
         notes = [];
         saveToLocal();
         updateTagsDatalist();
@@ -731,13 +834,13 @@ importInput.addEventListener('change', (e) => {
                 saveToLocal();
                 updateTagsDatalist();
                 renderActiveTab();
-                alert('Данные успешно восстановлены!');
+                showToast('Данные успешно восстановлены', 'success');
                 settingsModal.style.display = 'none';
             } else {
-                alert('Ошибка: Неверный формат файла.');
+                showToast('Неверный формат файла', 'error');
             }
         } catch (err) {
-            alert('Ошибка чтения файла. Убедитесь, что это правильный JSON.');
+            showToast('Ошибка чтения файла. Убедитесь, что это правильный JSON', 'error');
         }
         e.target.value = '';
     };
