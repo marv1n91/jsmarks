@@ -182,9 +182,8 @@ if (searchInput) {
 }
 
 function renderNoteCard(note) {
-    const isLightTheme = document.body.classList.contains('light-theme');
     const hasDefaultColor = !note.color || note.color === DEFAULT_NOTE_COLOR;
-    const bgColor = hasDefaultColor && isLightTheme ? '#ffffff' : (note.color || DEFAULT_NOTE_COLOR);
+    const bgColor = note.color || DEFAULT_NOTE_COLOR;
     const isLight = bgColor === '#ffffff';
     const bodyHtml = note.type === 'task' ? renderTaskList(note) : renderNoteText(note.content);
     const tagsHtml = note.tags.length
