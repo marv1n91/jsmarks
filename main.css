@@ -706,3 +706,52 @@ body.light-theme .empty-state {
     font-size: 0.7rem;
     opacity: 0.7;
 }
+
+body.light-theme .shared-note-card {
+    background: #ffffff;
+    color: #1f1f1f;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Элементы внутри светлой карточки */
+body.light-theme .shared-note-card .shared-note-title {
+    color: #1f1f1f;
+}
+
+body.light-theme .shared-note-card .close-note {
+    color: #555555;
+}
+
+body.light-theme .shared-note-card .close-note:hover {
+    color: #ff4d4d;
+}
+
+body.light-theme .shared-note-card span[style*="background: rgba(255, 255, 255, 0.14)"] {
+    background: #e7e7e7 !important;
+    color: #1f1f1f !important;
+}
+
+body.light-theme .shared-note-card .inscription-note {
+    color: #555555;
+    opacity: 0.8;
+}
+
+body.light-theme .shared-note-card ul li span {
+    color: #1f1f1f;
+}
+
+body.light-theme .shared-note-card ul li span[style*="text-decoration: line-through"] {
+    color: #777777 !important;
+}
+
+.shared-note-card.light-card {
+    color: #1f1f1f;
+}
+
+.shared-note-card.light-card .close-note {
+    color: #555555;
+}
+
+.shared-note-card.light-card .inscription-note {
+    color: #555555;
+}

@@ -406,19 +406,26 @@ function handleShare(e) {
 }
 
 function showSharedNote(sharedNote) {
+    const isLight = sharedNote.color === '#ffffff';
+
     const modalHtml = `
         <div class="background-shared-note-card" id="sharedNoteModal">
-            <div class="shared-note-card">
+            <div class="shared-note-card ${isLight ? 'light-card' : ''}" style="background: ${escapeHtml(sharedNote.color)};">
                 <h2 class="shared-note-title">${escapeHtml(sharedNote.title)}</h2>
                 <button class="close-note" id="closeSharedModal">✕</button>
-                ${sharedNote.type === 'task' ? renderSharedTaskList(sharedNote) : 
+
+                ${sharedNote.type === 'task' ? renderSharedTaskList(sharedNote, isLight) :
                 `<div class="shared-note-content">${escapeHtml(sharedNote.content)}</div>`}
+
                 ${sharedNote.tags?.length ? `
-                <div style="margin-top: 16px;">
-                ${sharedNote.tags.map(t => `<span style="background: rgba(255,255,255,0.14); padding: 4px 10px; border-radius: 40px;">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+                <div class="tags" style="margin-top: 16px;">
+                    ${sharedNote.tags.map(t => `<span class="tag">#${escapeHtml(t)}</span>`).join('')}
+                </div>` : ''}
+
                 <div class="inscription-note">Поделились ${new Date(sharedNote.sharedAt).toLocaleString()}</div>
             </div>
         </div>`;
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const closeModalBtn = document.getElementById('closeSharedModal');
     const modalRoot = document.getElementById('sharedNoteModal');
@@ -427,9 +434,19 @@ function showSharedNote(sharedNote) {
     window.location.hash = '';
 }
 
-function renderSharedTaskList(note) {
+function renderSharedTaskList(note, isLight) {
     if (!note.items?.length) return '<div>Нет задач</div>';
-    return `<ul style="list-style: none; padding: 0;">${note.items.map(item => `<li style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"><input type="checkbox" ${item.done ? 'checked' : ''} disabled> <span style="${item.done ? 'text-decoration: line-through;' : ''}">${escapeHtml(item.text)}</span></li>`).join('')}</ul>`;
+
+    return `
+      <ul class="task-list" style="padding: 0;">
+        ${note.items.map(item => `
+          <li class="task-item ${item.done ? 'completed-task' : ''}">
+            <input type="checkbox" ${item.done ? 'checked' : ''} disabled style="accent-color: #ffc700;">
+            <span>${escapeHtml(item.text)}</span>
+          </li>
+        `).join('')}
+      </ul>
+    `;
 }
 
 function checkForSharedNote() {
