@@ -367,10 +367,7 @@ body {
     transition: 0.2s;
 }
 
-.edit-note:hover {
-    color: #ffc700;
-}
-
+.edit-note:hover,
 .share-note:hover {
     color: #ffc700;
 }
@@ -395,9 +392,16 @@ body {
     color: #555555;
 }
 
+
+.light-card .edit-note:hover,
+.light-card .share-note:hover {
+     color: #ffc700;
+}
+
 .light-card .delete-note:hover {
     color: #d50000;
 }
+
 
 .empty-state {
     color: #ffffff;
