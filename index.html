@@ -1,0 +1,126 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+    <title>Заметки</title>
+</head>
+<body>
+
+<div class="app-container">
+
+    <div class="tabs-wrapper">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="notes">Заметки</button>
+            <button class="tab-btn" data-tab="tasks">Задачи</button>
+        </div>
+        <button id="settingsBtn" class="settings-btn" title="Настройки">⚙️</button>
+    </div>
+    <div class="search-panel">
+        <label for="search"></label>
+        <input type="text" id="search">
+    </div>
+    <div class="list-controls">
+        <div class="view-switch" role="group" aria-label="Режим отображения">
+            <button id="viewGridBtn" class="icon-view-btn active" type="button" aria-label="Плитка" title="Плитка"></button>
+            <button id="viewListBtn" class="icon-view-btn" type="button" aria-label="Список" title="Список"></button>
+        </div>
+        <select id="filterPinnedSelect" aria-label="Фильтр по закреплению">
+            <option value="all">Все</option>
+            <option value="pinned">Только закрепленные</option>
+            <option value="unpinned">Только незакрепленные</option>
+        </select>
+        <label for="filterTagInput" class="visually-hidden"></label>
+        <input type="text" id="filterTagInput" list="tagsList" placeholder="Фильтр по тегу">
+        <datalist id="tagsList"></datalist>
+        <select id="sortSelect" aria-label="Сортировка">
+            <option value="updated_desc">По дате редактирования</option>
+            <option value="title_asc">По алфавиту</option>
+        </select>
+        <button id="resetFiltersBtn" class="secondary" type="button">Сброс фильтров</button>
+    </div>
+    <div id="notes-pane" class="tab-pane active-pane">
+        <div class="panel-header">
+            <h2>Все заметки</h2>
+            <button class="create-btn" id="createNoteBtn">+</button>
+        </div>
+        <div id="notesContainer" class="notes-grid"></div>
+    </div>
+
+    <div id="tasks-pane" class="tab-pane">
+        <div class="panel-header">
+            <h2>Все задачи</h2>
+            <button class="create-btn" id="createTaskBtn">+</button>
+        </div>
+        <div id="tasksContainer" class="notes-grid"></div>
+    </div>
+</div>
+
+<div id="editorModal" class="modal">
+    <div class="modal-card">
+        <h3 id="modalTitle">Создать заметку</h3>
+        <label for="noteTitleInput" class="visually-hidden"></label>
+        <input type="text" id="noteTitleInput" placeholder="Заголовок" autocomplete="off">
+        <label for="noteBodyInput" class="visually-hidden"></label>
+        <textarea id="noteBodyInput" rows="4" placeholder="Содержание"></textarea>
+        <label for="noteTagsInput" class="visually-hidden"></label>
+        <input type="text" id="noteTagsInput" placeholder="Теги через запятую" autocomplete="off">
+        <label class="modal-label" for="noteColorInput">Цвет карточки</label>
+        <select id="noteColorInput">
+            <option value="#242424">Темная</option>
+            <option value="#ffffff">Светлая</option>
+            <option value="#f8f32b">Желтая</option>
+            <option value="#173528">Зеленая</option>
+            <option value="#182f3b">Синяя</option>
+            <option value="#3b1d2d">Розовая</option>
+        </select>
+        <label class="pin-row">
+            <input type="checkbox" id="notePinnedInput">
+            Закрепить
+        </label>
+        <div class="modal-buttons">
+            <button id="modalCancel" class="secondary">Отмена</button>
+            <button id="modalSave" class="primary">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal">
+    <div class="modal-card">
+        <h3>Настройки</h3>
+
+        <label class="modal-label" for="themeSelect">Оформление</label>
+        <select id="themeSelect">
+            <option value="dark">Темная тема</option>
+            <option value="light">Светлая тема</option>
+        </select>
+
+        <label class="modal-label" for="fontSelect" style="margin-top: 15px;">Шрифт</label>
+        <select id="fontSelect">
+            <option value="Comfortaa">Comfortaa</option>
+            <option value="Nunito">Nunito</option>
+            <option value="Roboto">Roboto</option>
+        </select>
+
+        <label class="modal-label" style="margin-top: 15px;">Управление данными</label>
+        <div class="settings-actions">
+            <button id="exportBtn" class="secondary">Экспорт (JSON)</button>
+            <label for="importInput" class="secondary btn-like">Импорт</label>
+            <input type="file" id="importInput" accept=".json" style="display: none;">
+            <button id="clearDataBtn" class="danger">Удалить всё</button>
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 25px;">
+            <button id="closeSettingsBtn" class="primary">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<script src="main.js"></script>
+
+</body>
+</html>
