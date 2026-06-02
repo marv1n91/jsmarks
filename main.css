@@ -649,6 +649,10 @@ body.light-theme .empty-state {
     white-space: nowrap;
 }
 
+input[id="filterTagInput"]{
+    outline: none;
+}
+
 .background-shared-note-card {
     position: fixed;
     inset: 0;
