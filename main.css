@@ -217,10 +217,12 @@ body {
 }
 
 .notes-grid {
-    display: grid;
+    /*display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     align-items: start;
-    gap: 1.5rem;
+    gap: 1.5rem;*/
+    column-count: 4;
+    column-gap: 1.5rem;
 }
 
 .notes-list {
@@ -231,6 +233,8 @@ body {
 
 .notes-list .note-card {
     min-height: auto;
+    break-inside: auto;
+    margin-bottom: 0;
 }
 
 .note-card {
@@ -244,6 +248,24 @@ body {
     position: relative;
     min-height: 220px;
     min-width: 0;
+    break-inside: avoid;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1400px) {
+    .notes-grid { column-count: 4; }
+}
+
+@media (max-width: 900px) {
+    .notes-grid { column-count: 3; }
+}
+
+@media (max-width: 600px) {
+    .notes-grid { column-count: 2; }
+}
+
+@media (max-width: 400px) {
+    .notes-grid { column-count: 1; }
 }
 
 .note-card:hover {
