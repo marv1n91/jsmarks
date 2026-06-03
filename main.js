@@ -393,6 +393,10 @@ function attachCardEvents() {
         el.removeEventListener('click', handleShare);
         el.addEventListener('click', handleShare);
     });
+    document.querySelectorAll('.note-card').forEach(el => {
+        el.removeEventListener('click', handleCardClick);
+        el.addEventListener('click', handleCardClick);
+    });
 }
 
 function handleEdit(e) {
@@ -569,6 +573,32 @@ function setTaskDone(id, index, done) {
         note.items[index].done = done;
         saveToLocal();
         renderActiveTab();
+    }
+}
+
+function handleCardClick(e) {
+    if (e.target.closest('.pin-note') ||
+        e.target.closest('.edit-note') ||
+        e.target.closest('.delete-note') ||
+        e.target.closest('.share-note') ||
+        e.target.closest('.task-checkbox') ||
+        e.target.closest('.task-item')) {
+        return;
+    }
+    const card = e.currentTarget;
+    const id = card.getAttribute('data-id');
+    const note = notes.find(n => n.id === id);
+    if (note) {
+        const sharedFormat = {
+            title: note.title,
+            content: note.content,
+            type: note.type,
+            color: note.color,
+            tags: note.tags,
+            items: note.items,
+            sharedAt: Date.now()
+        };
+        showSharedNote(sharedFormat);
     }
 }
 

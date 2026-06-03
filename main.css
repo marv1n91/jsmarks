@@ -217,12 +217,10 @@ body {
 }
 
 .notes-grid {
-    /*display: grid;
+    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     align-items: start;
-    gap: 1.5rem;*/
-    column-count: 4;
-    column-gap: 1.5rem;
+    gap: 1.5rem;
 }
 
 .notes-list {
@@ -252,22 +250,6 @@ body {
     margin-bottom: 1.5rem;
 }
 
-@media (max-width: 1400px) {
-    .notes-grid { column-count: 4; }
-}
-
-@media (max-width: 900px) {
-    .notes-grid { column-count: 3; }
-}
-
-@media (max-width: 600px) {
-    .notes-grid { column-count: 2; }
-}
-
-@media (max-width: 400px) {
-    .notes-grid { column-count: 1; }
-}
-
 .note-card:hover {
     transform: translateY(-2px);
     border-color: #e2e8f0;
@@ -288,10 +270,13 @@ body {
     color: white;
     padding-right: 2rem;
     max-width: 100%;
-    overflow-wrap: anywhere;
+    /*overflow-wrap: anywhere;
     word-break: break-word;
     white-space: normal;
-    hyphens: auto;
+    hyphens: auto;*/
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pin-note {
@@ -337,10 +322,13 @@ body {
     color: white;
     line-height: 1.4;
     margin: 8px 0;
-    white-space: pre-wrap;
+    /*white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
-    hyphens: auto;
+    hyphens: auto;*/
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .tags {
