@@ -16,7 +16,7 @@
     <div class="tabs-wrapper">
         <div class="tabs">
             <button class="tab-btn active" data-tab="notes">Заметки</button>
-            <button class="tab-btn" data-tab="tasks">Список задач</button>
+            <button class="tab-btn" data-tab="tasks">Списки</button>
         </div>
         <button id="settingsBtn" class="settings-btn" title="Настройки">⚙️</button>
     </div>
@@ -37,11 +37,11 @@
         <label for="filterTagInput" class="visually-hidden"></label>
         <input type="text" id="filterTagInput" list="tagsList" placeholder="Фильтр по тегу">
         <datalist id="tagsList"></datalist>
+        <button id="resetFiltersBtn" class="secondary" type="button">Сброс фильтров</button>
         <select id="sortSelect" aria-label="Сортировка">
             <option value="updated_desc">По дате редактирования</option>
             <option value="title_asc">По алфавиту</option>
         </select>
-        <button id="resetFiltersBtn" class="secondary" type="button">Сброс фильтров</button>
     </div>
     <div id="notes-pane" class="tab-pane active-pane">
         <div class="panel-header">
@@ -53,7 +53,7 @@
 
     <div id="tasks-pane" class="tab-pane">
         <div class="panel-header">
-            <h2>Все задачи</h2>
+            <h2>Все списки</h2>
             <button class="create-btn" id="createTaskBtn">+</button>
         </div>
         <div id="tasksContainer" class="notes-grid"></div>

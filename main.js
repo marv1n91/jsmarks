@@ -171,8 +171,8 @@ function renderTasks() {
     const visibleTasks = getVisibleItemsForTab('tasks');
     const emptyMessage = currentSearchQuery.trim()
         ? 'Ничего не найдено'
-        : 'Пока нет задач';
-    searchInput.placeholder = 'Поиск задач';
+        : 'Пока нет списков';
+    searchInput.placeholder = 'Поиск списков';
     container.innerHTML = visibleTasks.map(renderNoteCard).join('') || `<p class="empty-state">${emptyMessage}</p>`;
     attachCardEvents();
 }
@@ -240,7 +240,7 @@ function renderNoteText(content) {
 
 function renderTaskList(note) {
     if(!note.items.length) {
-        return '<div class="note-preview empty-task-text">Нет задач</div>';
+        return '<div class="note-preview empty-task-text">Нет пунктов</div>';
     }
 
     return `
@@ -560,7 +560,7 @@ function showSharedNote(sharedNote) {
 }
 
 function renderSharedTaskList(note, isLight) {
-    if (!note.items?.length) return '<div>Нет задач</div>';
+    if (!note.items?.length) return '<div>Нет пунктов</div>';
 
     return `
       <ul class="task-list" style="padding: 0;">
@@ -611,30 +611,19 @@ function handleCardClick(e) {
     const card = e.currentTarget;
     const id = card.getAttribute('data-id');
     const note = notes.find(n => n.id === id);
-    if (note) {
-        const sharedFormat = {
-            title: note.title,
-            content: note.content,
-            type: note.type,
-            color: note.color,
-            tags: note.tags,
-            items: note.items,
-            sharedAt: Date.now()
-        };
-        showSharedNote(sharedFormat);
-    }
+    if (note) openModalForEdit(note);
 }
 
 function openModalForCreate(forceType = 'note') {
     currentEditId = null;
     currentModalMode = 'create';
     currentCreateType = forceType;
-    modalTitle.innerText = forceType === 'task' ? 'Новая задача' : 'Новая заметка';
-    bodyInput.placeholder = forceType === 'task' ? 'Каждая задача с новой строки' : 'Содержание';
+    modalTitle.innerText = forceType === 'task' ? 'Новый список' : 'Новая заметка';
+    bodyInput.placeholder = forceType === 'task' ? 'Каждый пункт с новой строки' : 'Содержание';
     titleInput.value = '';
     bodyInput.value = '';
     tagsInput.value = '';
-    colorSelect.value = DEFAULT_NOTE_COLOR;
+    setSelectedColor(DEFAULT_NOTE_COLOR);
     pinnedInput.checked = false;
     modal.style.display = 'flex';
     titleInput.focus();
@@ -644,12 +633,12 @@ function openModalForEdit(note) {
     currentEditId = note.id;
     currentModalMode = 'edit';
     currentCreateType = note.type || 'note';
-    modalTitle.innerText = note.type === 'task' ? 'Редактировать задачу' : 'Редактировать заметку';
-    bodyInput.placeholder = note.type === 'task' ? 'Каждая задача с новой строки' : 'Содержание';
+    modalTitle.innerText = note.type === 'task' ? 'Редактировать список' : 'Редактировать заметку';
+    bodyInput.placeholder = note.type === 'task' ? 'Каждый пункт с новой строки' : 'Содержание';
     titleInput.value = note.title || '';
     bodyInput.value = note.type === 'task' ? getTaskTextForEditor(note) : note.content || '';
     tagsInput.value = (note.tags || []).join(', ');
-    colorSelect.value = note.color || DEFAULT_NOTE_COLOR;
+    setSelectedColor(note.color || DEFAULT_NOTE_COLOR);
     pinnedInput.checked = Boolean(note.pinned);
     modal.style.display = 'flex';
     titleInput.focus();
@@ -667,7 +656,7 @@ function saveFromModal() {
 
     if(currentCreateType === 'task') {
         if(newItems.length === 0) {
-            showToast('Добавьте хотя бы один пункт в список задач', 'error');
+            showToast('Добавьте хотя бы один пункт в список', 'error');
             return;
         }
     } else if(!titleTrim && !contentTrim) {
@@ -854,7 +843,7 @@ if (fontSelect) {
 
 if (clearDataBtn) {
     clearDataBtn.addEventListener('click', async () => {
-        if (!await showConfirm('Удалить все заметки и задачи без возможности восстановления?')) return;
+        if (!await showConfirm('Удалить все заметки и списки без возможности восстановления?')) return;
         notes = [];
         saveToLocal();
         updateTagsDatalist();
