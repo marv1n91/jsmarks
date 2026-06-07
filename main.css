@@ -740,8 +740,8 @@ input[id="filterTagInput"]{
     max-width: 600px;
     width: 100%;
     background: #242424;
-    border-radius: 20px;
-    padding: 24px;
+    border-radius: 5px;
+    padding: 30px;
     color: #ffffff;
     position: relative;
     max-height: 85vh;
@@ -862,15 +862,6 @@ body.light-theme .shared-note-card ul li span[style*="text-decoration: line-thro
 
 ::-webkit-scrollbar-corner {
     background: transparent;
-}
-
-.shared-note-card::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-}
-
-.shared-note-card.light-card::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.08);
 }
 
 .toast-container {

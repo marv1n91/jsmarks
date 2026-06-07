@@ -550,13 +550,123 @@ function showSharedNote(sharedNote) {
                 <div class="inscription-note">${new Date(sharedNote.sharedAt).toLocaleString()}</div>
             </div>
         </div>`;
-
+    
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const closeModalBtn = document.getElementById('closeSharedModal');
     const modalRoot = document.getElementById('sharedNoteModal');
     if (closeModalBtn) closeModalBtn.onclick = () => modalRoot.remove();
     if (modalRoot) modalRoot.onclick = (e) => { if (e.target === modalRoot) modalRoot.remove(); };
     window.location.hash = '';
+}
+
+let pendingChanges = {};
+
+function showNote(note) {
+    const isLight = note.color === '#ffffff' || note.color === '#e6cf5e';
+    const isTask = note.type === 'task';
+
+    if (!pendingChanges[note.id]) {
+        pendingChanges[note.id] = {
+            items: note.items.map(item => ({ done: item.done }))
+        };
+    }
+    
+    const modalHtml = `
+        <div class="background-shared-note-card" id="fullNoteModal" data-note-id="${note.id}">
+            <div class="shared-note-card ${isLight ? 'light-card' : ''}" style="background: ${escapeHtml(note.color)};">
+                <h2 class="shared-note-title">${escapeHtml(note.title)}</h2>
+                <button class="close-note close-full-modal">✕</button>
+
+                ${isTask ? `
+                <ul class="task-list" style="padding: 0; margin: 10px 0 12px;">
+                    ${note.items.map((item, index) => `
+                    <li class="task-item ${item.done ? 'completed-task' : ''}" data-index="${index}">
+                        <input type="checkbox" class="note-view-checkbox" data-id="${note.id}" data-index="${index}" ${item.done ? 'checked' : ''}>
+                        <span>${escapeHtml(item.text)}</span>
+                    </li>
+                    `).join('')}
+                </ul>
+                ` : `<div class="shared-note-content" style="white-space: pre-wrap;">${escapeHtml(note.content)}</div>`}
+
+                ${note.tags?.length ? `
+                <div class="tags" style="margin-top: 16px;">
+                    ${note.tags.map(t => `<span class="tag">#${escapeHtml(t)}</span>`).join('')}
+                </div>` : ''}
+
+                <div class="inscription-note">Создано: ${formatDate(note.createdAt)}</div>
+            </div>
+        </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalRoot = document.getElementById('fullNoteModal');
+    const closeBtn = modalRoot.querySelector('.close-full-modal');
+
+    const closeModal = () => {
+        applyPendingChanges(note.id);
+        modalRoot.remove();
+    };
+    closeBtn.onclick = closeModal;
+    modalRoot.onclick = (e) => { if (e.target === modalRoot) closeModal(); };
+
+    attachNoteViewCheckboxes(modalRoot);
+}
+
+function applyPendingChanges(noteId) {
+    const changes = pendingChanges[noteId];
+    if (!changes) return;
+    
+    const originalNote = notes.find(n => n.id === noteId);
+    if (!originalNote) return;
+
+    let hasChanges = false;
+    
+    if (changes.items) {
+        changes.items.forEach((itemChange, index) => {
+            if (itemChange && originalNote.items[index] && originalNote.items[index].done !== itemChange.done) {
+                originalNote.items[index].done = itemChange.done;
+                hasChanges = true;
+            }
+        });
+    }
+    if (hasChanges) {
+        originalNote.updatedAt = Date.now();
+        saveToLocal();
+        renderActiveTab();
+    }
+    
+    delete pendingChanges[noteId];
+}
+
+function attachNoteViewCheckboxes(modalRoot) {
+    modalRoot.querySelectorAll('.note-view-checkbox').forEach(checkbox => {
+        checkbox.removeEventListener('change', handleNoteViewCheckbox);
+        checkbox.addEventListener('change', handleNoteViewCheckbox);
+    });
+}
+
+function handleNoteViewCheckbox(e) {
+    e.stopPropagation();
+    const checkbox = e.currentTarget;
+    const id = checkbox.getAttribute('data-id');
+    const index = Number(checkbox.getAttribute('data-index'));
+    const isChecked = checkbox.checked;
+    
+    const taskItem = checkbox.closest('.task-item');
+    if (taskItem) {
+        if (isChecked) {
+            taskItem.classList.add('completed-task');
+        } else {
+            taskItem.classList.remove('completed-task');
+        }
+    }
+    
+    if (!pendingChanges[id]) {
+        pendingChanges[id] = { items: [] };
+    }
+    if (!pendingChanges[id].items[index]) {
+        pendingChanges[id].items[index] = {};
+    }
+    pendingChanges[id].items[index].done = isChecked;
 }
 
 function renderSharedTaskList(note, isLight) {
@@ -611,7 +721,7 @@ function handleCardClick(e) {
     const card = e.currentTarget;
     const id = card.getAttribute('data-id');
     const note = notes.find(n => n.id === id);
-    if (note) openModalForEdit(note);
+    if (note) showNote(note);
 }
 
 function openModalForCreate(forceType = 'note') {
