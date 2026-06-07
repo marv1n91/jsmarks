@@ -9,14 +9,36 @@ let currentPinnedFilter = 'all';
 let currentTagFilter = '';
 let currentSortMode = 'updated_desc';
 const DEFAULT_NOTE_COLOR = '#242424';
-const SHARE_COLORS = ['#242424', '#ffffff', '#f8f32b', '#173528', '#182f3b', '#3b1d2d'];
+const SHARE_COLORS = ['#242424', '#ffffff', '#e6cf5e', '#1c5239', '#1d3f63', '#7a2f50'];
+const COLOR_MIGRATION = {
+    '#f8f32b': '#e6cf5e',
+    '#173528': '#1c5239',
+    '#182f3b': '#1d3f63',
+    '#3b1d2d': '#7a2f50'
+};
 
 const modal = document.getElementById('editorModal');
 const modalTitle = document.getElementById('modalTitle');
 const titleInput = document.getElementById('noteTitleInput');
 const bodyInput = document.getElementById('noteBodyInput');
 const tagsInput = document.getElementById('noteTagsInput');
-const colorSelect = document.getElementById('noteColorInput');
+const colorSwatches = document.getElementById('colorSwatches');
+let selectedColorValue = DEFAULT_NOTE_COLOR;
+
+function setSelectedColor(color) {
+    selectedColorValue = color;
+    if(!colorSwatches) return;
+    colorSwatches.querySelectorAll('.color-swatch').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.color === color);
+    });
+}
+
+if(colorSwatches) {
+    colorSwatches.addEventListener('click', e => {
+        const btn = e.target.closest('.color-swatch');
+        if(btn) setSelectedColor(btn.dataset.color);
+    });
+}
 const pinnedInput = document.getElementById('notePinnedInput');
 const searchInput = document.getElementById('search');
 const viewGridBtn = document.getElementById('viewGridBtn');
@@ -35,12 +57,13 @@ function loadData() {
 
 function normalizeNote(note) {
     const now = Date.now();
+    const color = COLOR_MIGRATION[note.color] || note.color;
     return {
         id: note.id || now.toString(),
         title: note.title,
         content: note.content,
         type: note.type,
-        color: note.color,
+        color: color,
         tags: Array.isArray(note.tags) ? note.tags : [],
         items: normalizeTaskItems(note),
         pinned: Boolean(note.pinned),
@@ -185,7 +208,7 @@ if (searchInput) {
 function renderNoteCard(note) {
     const hasDefaultColor = !note.color || note.color === DEFAULT_NOTE_COLOR;
     const bgColor = note.color || DEFAULT_NOTE_COLOR;
-    const isLight = bgColor === '#ffffff' || bgColor === '#f8f32b';
+    const isLight = bgColor === '#ffffff' || bgColor === '#e6cf5e';
     const bodyHtml = note.type === 'task' ? renderTaskList(note) : renderNoteText(note.content);
     const tagsHtml = note.tags.length
         ? `<div class="tags">${note.tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}</div>`
@@ -508,7 +531,7 @@ function handleShare(e) {
 }
 
 function showSharedNote(sharedNote) {
-    const isLight = sharedNote.color === '#ffffff' || sharedNote.color === '#f8f32b';
+    const isLight = sharedNote.color === '#ffffff' || sharedNote.color === '#e6cf5e';
 
     const modalHtml = `
         <div class="background-shared-note-card" id="sharedNoteModal">
@@ -655,7 +678,7 @@ function saveFromModal() {
     const newTitle = titleTrim || 'Без названия';
     const newContent = contentTrim;
     const newTags = normalizeTags(tagsInput.value);
-    const selectedColor = colorSelect.value;
+    const selectedColor = selectedColorValue;
     const isPinned = pinnedInput.checked;
 
     if(currentModalMode === 'create') {
