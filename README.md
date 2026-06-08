@@ -124,3 +124,17 @@ jsmarks/
 | `filterBySearch()` | Поиск по тексту и тегам                 |
 | `getVisibleItemsForTab()` | Фильтрация + сортировка                 |
 | `openModalForEdit()` | Форма редактирования заметки            |
+
+### Ссылки на репозиторий, ТЗ, баг-репорт и аккаунты участников
+
+**Репозиторий:** https://github.com/marv1n91/jsmarks
+
+**ТЗ:** https://github.com/marv1n91/jsmarks/blob/main/TS.md
+
+**Баг-репорт:** https://github.com/marv1n91/jsmarks/issues
+
+**Аккаунты участников:**
+https://github.com/STRUGACH-SUS (Мельников Ростислав - Техлид)
+https://github.com/marv1n91 (Дулисов Семён - Разработчик)
+https://github.com/ZHEEZL (Чолпонбаев Радик - Разработчик)
+https://github.com/ilyar07 (Ротгань Илья - QA-инженер)
